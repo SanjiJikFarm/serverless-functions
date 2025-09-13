@@ -7,11 +7,29 @@ function parseReceipt(data) {
   const fields = data.images[0].fields.map(f => f.inferText.trim());
   const items = [];
   let totalAmount = null;
+  let storeName = null;
+  let address = null;
+  let date = null;
 
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 상품명 후보: P로 시작하는 문자열
+    // 매장명 (로컬푸드 / 직매장 키워드)
+    if (!storeName && (text.includes("로컬푸드") || text.includes("직매장"))) {
+      storeName = text;
+    }
+
+    // 주소 (도/시/로 포함, 길이 10 이상)
+    if (!address && /(도|시).+(로|길)/.test(text) && text.length > 10) {
+      address = text.replace(/^주소[:\s]*/, ""); // "주소:" 제거
+    }
+
+    // 날짜 (YYYY-MM-DD or YYYY.MM.DD)
+    if (!date && /^\d{4}[-.]\d{2}[-.]\d{2}/.test(text)) {
+      date = text.split(" ")[0].replace(/-/g, ".");
+    }
+
+    // 상품명 (P로 시작)
     if (text.startsWith("P")) {
       let price = null, qty = null, total = null;
       let count = 0;
@@ -30,8 +48,8 @@ function parseReceipt(data) {
       }
     }
 
-    // 총구매액 찾기
-    if (text.includes("총구매액")) {
+    // 총구매액 / 총 구매액 / 총액 
+    if (/(총\s*구매액|총액)/.test(text)) {
       const amount = fields[i + 1] || "";
       if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
         totalAmount = amount;
@@ -39,8 +57,9 @@ function parseReceipt(data) {
     }
   }
 
-  return { items, totalAmount };
+  return { date, storeName, address, items, totalAmount };
 }
+
 
 // Object Storage 클라이언트
 const s3 = new AWS.S3({
@@ -52,7 +71,7 @@ const s3 = new AWS.S3({
   },
 });
 
-// Object Storage 업로드 함수
+// Object Storage 업로드
 async function uploadToObjectStorage(userId, data) {
   const key = `receipts/${userId}/${Date.now()}.json`;
 
@@ -64,7 +83,6 @@ async function uploadToObjectStorage(userId, data) {
   };
 
   await s3.putObject(params).promise();
-
   return `https://kr.object.ncloudstorage.com/${process.env.NCP_BUCKET}/${key}`;
 }
 
@@ -86,30 +104,25 @@ export async function main(req, res) {
     formData.append("message", message);
 
     // OCR 호출
-    const response = await axios.post(
-      process.env.CLOVA_OCR_URL,
-      formData,
-      {
-        headers: {
-          "X-OCR-SECRET": process.env.CLOVA_OCR_SECRET,
-          ...formData.getHeaders(),
-        },
-      }
-    );
+    const response = await axios.post(process.env.CLOVA_OCR_URL, formData, {
+      headers: {
+        "X-OCR-SECRET": process.env.CLOVA_OCR_SECRET,
+        ...formData.getHeaders(),
+      },
+    });
 
-    // OCR 결과 파싱
+    // 결과 파싱 + 저장
     const parsed = parseReceipt(response.data);
+    const userId = req.body?.userId || "defaultUser";
+    const fileUrl = await uploadToObjectStorage(userId, parsed);
 
-    // Object Storage 업로드
-    const fileUrl = await uploadToObjectStorage("user123", parsed);
-
-    // 최종 응답
     res.status(200).json({
       ...parsed,
       fileUrl,
     });
   } catch (err) {
-    console.error("❌ OCR 처리 실패:", err.response?.data || err.message);
-    res.status(500).json({ error: err.response?.data || err.message });
+    const errorMessage = err.response?.data || err.message;
+    console.error("❌ OCR 처리 실패:", errorMessage);
+    res.status(500).json({ error: errorMessage });
   }
 }

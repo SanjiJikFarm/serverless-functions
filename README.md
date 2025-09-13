@@ -4,11 +4,11 @@
 네이버 **Clova OCR**을 활용하여 영수증 이미지를 인식하고,  
 **NCP Cloud Functions** 환경에서 동작하며, 인식 결과를 **Object Storage**에 저장합니다.
 
----
 
 ### ✨ 주요 기능
 - 사용자가 업로드한 영수증 이미지를 Clova OCR API로 전달
 - OCR 결과에서 주요 항목 파싱:
+  - 매장명 / 주소 / 구매 날짜 
   - 상품명 / 단가 / 수량 / 금액
   - 총구매액
 - 파싱된 JSON 결과를 **Object Storage**에 업로드
