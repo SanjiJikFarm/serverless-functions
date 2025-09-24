@@ -6,6 +6,7 @@ provider:
 
 functions:
   ocr-receipt-parser:
+    name: ocr-receipt-parser    
     handler: src/index.main
     runtime: nodejs:22
     memory: 512
