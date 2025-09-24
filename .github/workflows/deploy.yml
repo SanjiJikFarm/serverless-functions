@@ -26,10 +26,13 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Serverless Framework v3 (no login required)
+        run: npm install -g serverless@3
+
       - name: Set environment variables
         run: |
           echo "NCLOUD_ACCESS_KEY=${{ secrets.NCLOUD_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "NCLOUD_SECRET_KEY=${{ secrets.NCLOUD_SECRET_KEY }}" >> $GITHUB_ENV
 
       - name: Deploy with Serverless Framework
-        run: npx serverless deploy
+        run: serverless deploy
