@@ -1,4 +1,4 @@
-name: Deploy NCP Cloud Function
+name: Deploy NCP Cloud Function via API
 
 on:
   push:
@@ -11,24 +11,45 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '22'
-
-      - name: Install Serverless Framework
-        run: npm install -g serverless@3
 
       - name: Zip function code
         run: |
           cd src
           zip -r ../function.zip .
 
-      - name: Deploy with Serverless
+      - name: Get current timestamp
+        id: time
+        run: echo "timestamp=$(date +%s000)" >> $GITHUB_OUTPUT
+
+      - name: Generate signature
+        id: sign
         env:
           NCP_ACCESS_KEY: ${{ secrets.NCLOUD_ACCESS_KEY }}
           NCP_SECRET_KEY: ${{ secrets.NCLOUD_SECRET_KEY }}
-        run: sls deploy --verbose
+          TIMESTAMP: ${{ steps.time.outputs.timestamp }}
+          METHOD: "PUT"
+          API_PATH: "/ncf/api/v2/"
+        run: |
+          message="$TIMESTAMP\n$NCP_ACCESS_KEY\n$METHOD\n$API_PATH"
+          signature=$(echo -en "$message" | \
+            openssl dgst -sha256 -hmac "$NCP_SECRET_KEY" -binary | base64)
+          echo "signature=$signature" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Naver Cloud Function
+        env:
+          TIMESTAMP: ${{ steps.time.outputs.timestamp }}
+          SIGNATURE: ${{ steps.sign.outputs.signature }}
+          NCP_ACCESS_KEY: ${{ secrets.NCLOUD_ACCESS_KEY }}
+          FUNCTION_ID: ${{ secrets.FUNCTION_ID }}
+          RUNTIME: nodejs22   
+          HANDLER: index.main 
+        run: |
+          curl -X PUT "https://cloudfunctions.apigw.ntruss.com/ncf/api/v2/functions/$FUNCTION_ID" \
+          -H "x-ncp-apigw-timestamp: $TIMESTAMP" \
+          -H "x-ncp-iam-access-key: $NCP_ACCESS_KEY" \
+          -H "x-ncp-apigw-signature-v2: $SIGNATURE" \
+          -F "runtime=$RUNTIME" \
+          -F "handler=$HANDLER" \
+          -F "code=@function.zip"
