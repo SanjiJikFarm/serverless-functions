@@ -12,10 +12,12 @@ function parseReceipt(data) {
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
+    // 날짜 추출
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
       date = text.split(" ")[0].replace(/-/g, ".");
     }
 
+    // 매장명 추출
     if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
       storeName = text;
     }
@@ -39,7 +41,7 @@ function parseReceipt(data) {
       }
     }
 
-    // 총구매액
+    // 총구매액 추출
     if (text.includes("총구매액")) {
       const amount = fields[i + 1] || "";
       if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
@@ -56,69 +58,25 @@ function parseReceipt(data) {
   };
 }
 
-// S3 설정
-const s3 = new AWS.S3({
-  endpoint: "https://kr.object.ncloudstorage.com",
-  region: process.env.NCP_REGION,
-  credentials: {
-    accessKeyId: process.env.NCP_ACCESS_KEY,
-    secretAccessKey: process.env.NCP_SECRET_KEY,
-  },
-});
-
-// Presigned URL로 OCR 요청하는 방식
-async function uploadImageToS3AndGetUrl(userId, imageBase64) {
-  const key = `uploads/${userId}/${Date.now()}.jpg`;
-  const buffer = Buffer.from(imageBase64, "base64");
-
-  await s3.putObject({
-    Bucket: process.env.NCP_BUCKET,
-    Key: key,
-    Body: buffer,
-    ContentType: "image/jpeg",
-  }).promise();
-
-  const url = s3.getSignedUrl("getObject", {
-    Bucket: process.env.NCP_BUCKET,
-    Key: key,
-    Expires: 60 * 10, // 10분
-  });
-
-  return url;
-}
-
-// 분석된 결과도 S3에 JSON으로 저장
-async function uploadToObjectStorage(userId, parsed) {
-  const key = `results/${userId}/${Date.now()}.json`;
-  await s3.putObject({
-    Bucket: process.env.NCP_BUCKET,
-    Key: key,
-    Body: JSON.stringify(parsed, null, 2),
-    ContentType: "application/json",
-  }).promise();
-
-  return s3.getSignedUrl("getObject", {
-    Bucket: process.env.NCP_BUCKET,
-    Key: key,
-    Expires: 60 * 10,
-  });
-}
-
+// 메인 엔트리 함수
 export async function main(args) {
   try {
-    const userId = args.userId || "testuser";
-    const imageBase64 = args.imageBase64;
-    const NCP_BUCKET = args.NCP_BUCKET;
-    const NCP_ACCESS_KEY = args.NCP_ACCESS_KEY;
-    const NCP_SECRET_KEY = args.NCP_SECRET_KEY;
-    const NCP_REGION = args.NCP_REGION;
-    const CLOVA_OCR_SECRET = args.CLOVA_OCR_SECRET;
-    const CLOVA_OCR_URL = args.CLOVA_OCR_URL;
+    const {
+      userId = "testuser",
+      imageBase64,
+      NCP_BUCKET,
+      NCP_ACCESS_KEY,
+      NCP_SECRET_KEY,
+      NCP_REGION,
+      CLOVA_OCR_SECRET,
+      CLOVA_OCR_URL,
+    } = args;
 
     if (!imageBase64) {
       return { error: "imageBase64가 전달되지 않았습니다." };
     }
 
+    // S3 설정
     const s3 = new AWS.S3({
       endpoint: "https://kr.object.ncloudstorage.com",
       region: NCP_REGION,
@@ -128,6 +86,7 @@ export async function main(args) {
       },
     });
 
+    // 이미지 업로드
     const key = `uploads/${userId}/${Date.now()}.jpg`;
     const buffer = Buffer.from(imageBase64, "base64");
 
@@ -138,23 +97,19 @@ export async function main(args) {
       ContentType: "image/jpeg",
     }).promise();
 
+    // Presigned URL 생성
     const imageUrl = s3.getSignedUrl("getObject", {
       Bucket: NCP_BUCKET,
       Key: key,
-      Expires: 600,
+      Expires: 600, // 10분
     });
 
+    // Clova OCR 요청
     const body = {
       version: "V1",
-      requestId: `request-${Date.now()}`,
+      requestId: `req-${Date.now()}`,
       timestamp: Date.now(),
-      images: [
-        {
-          format: "jpg",
-          name: "receipt",
-          url: imageUrl,
-        },
-      ],
+      images: [{ format: "jpg", name: "receipt", url: imageUrl }],
       lang: "ko",
       resultType: "string",
     };
@@ -172,30 +127,17 @@ export async function main(args) {
       return { error: "OCR 응답 형식이 유효하지 않음", raw: data };
     }
 
+    // 파싱
     const parsed = parseReceipt(data);
 
-    const resultKey = `results/${userId}/${Date.now()}.json`;
-
-    await s3.putObject({
-      Bucket: NCP_BUCKET,
-      Key: resultKey,
-      Body: JSON.stringify(parsed, null, 2),
-      ContentType: "application/json",
-    }).promise();
-
-    const resultUrl = s3.getSignedUrl("getObject", {
-      Bucket: NCP_BUCKET,
-      Key: resultKey,
-      Expires: 600,
-    });
-
+    // 저장 없이 결과만 리턴
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...parsed, fileUrl: resultUrl }),
-    };    
+      body: JSON.stringify(parsed),
+    };
   } catch (err) {
-    console.error("🔥 최종 에러:", err);
+    console.error("🔥 에러 발생:", err);
     return { error: err.message || "알 수 없는 오류" };
   }
 }
