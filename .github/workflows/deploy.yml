@@ -33,7 +33,7 @@ jobs:
 
       - name: Deploy to Naver Cloud Function
         run: |
-          curl -X PUT "https://functions.apigw.ntruss.com/api/functions/v2/update/${{ secrets.FUNCTION_NAME }}" \
+          curl -X PUT "https://functions.apigw.ntruss.com/api/functions/v2/update/ocr-receipt-upload" \
           -H "x-ncp-apigw-timestamp: ${{ steps.time.outputs.timestamp }}" \
           -H "x-ncp-iam-access-key: ${{ secrets.NCLOUD_ACCESS_KEY }}" \
           -H "x-ncp-apigw-signature-v2: ${{ steps.sign.outputs.signature }}" \
