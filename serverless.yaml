@@ -1,0 +1,16 @@
+service: ocr-receipt-parser
+
+provider:
+  name: naver-cloud
+  runtime: nodejs22  # NCP 콘솔에서 선택한 Node.js 버전과 맞춰야 함
+  region: kr2        # 함수 만든 리전 (KR-2라면 kr2, KR-1이면 kr1)
+  credentials:
+    accessKeyId: ${env:NCP_ACCESS_KEY}
+    secretAccessKey: ${env:NCP_SECRET_KEY}
+
+package:
+  artifact: function.zip   # GitHub Actions에서 zip으로 묶은 파일
+
+functions:
+  receiptParser:
+    handler: index.main    # index.js 안에서 export한 main 함수

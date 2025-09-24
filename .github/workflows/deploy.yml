@@ -1,4 +1,4 @@
-name: Deploy to NCP Cloud Functions
+name: Deploy NCP Cloud Function
 
 on:
   push:
@@ -19,17 +19,16 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Install Serverless Framework and Plugin
-        run: |
-          npm install -g serverless
-          npm install -g serverless-tencent-scf  # Note: The official plugin for NCP is often a fork or variant like this.
+      - name: Install Serverless Framework
+        run: npm install -g serverless
 
-      - name: Configure Serverless credentials
+      - name: Zip function code
+        run: |
+          cd src
+          zip -r ../function.zip .
+
+      - name: Deploy with Serverless
         env:
           NCP_ACCESS_KEY: ${{ secrets.NCLOUD_ACCESS_KEY }}
           NCP_SECRET_KEY: ${{ secrets.NCLOUD_SECRET_KEY }}
-        run: |
-          sls config credentials --provider naver-cloud --naver-cloud-access-key $NCP_ACCESS_KEY --naver-cloud-secret-key $NCP_SECRET_KEY
-
-      - name: Deploy to Cloud Functions
         run: sls deploy --verbose
