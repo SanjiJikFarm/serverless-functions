@@ -1,0 +1,43 @@
+name: Deploy Naver Cloud Function
+
+on:
+  push:
+    paths:
+      - "src/**"
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Zip function code
+        run: |
+          cd src
+          zip -r ../function.zip .
+
+      - name: Get current timestamp
+        id: time
+        run: echo "timestamp=$(date +%s000)" >> $GITHUB_OUTPUT
+
+      - name: Generate Signature
+        id: sign
+        run: |
+          message="${{ steps.time.outputs.timestamp }}\n${{ secrets.NCLOUD_ACCESS_KEY }}\nPUT\n/functions/v2/update"
+          signature=$(echo -en "$message" | openssl dgst -sha256 -hmac "${{ secrets.NCLOUD_SECRET_KEY }}" -binary | base64)
+          echo "signature=$signature" >> $GITHUB_OUTPUT
+
+      - name: Deploy to Naver Cloud Function
+        run: |
+          curl -X PUT "https://functions.apigw.ntruss.com/api/functions/v2/update" \
+            -H "x-ncp-apigw-timestamp: ${{ steps.time.outputs.timestamp }}" \
+            -H "x-ncp-iam-access-key: ${{ secrets.NCLOUD_ACCESS_KEY }}" \
+            -H "x-ncp-apigw-signature-v2: ${{ steps.sign.outputs.signature }}" \
+            -F "functionName=${{ secrets.FUNCTION_NAME }}" \
+            -F "runtime=${{ secrets.RUNTIME }}" \
+            -F "handler=${{ secrets.HANDLER }}" \
+            -F "code=@function.zip"
