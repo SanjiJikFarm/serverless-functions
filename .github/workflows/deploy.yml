@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
 
       - name: Install Serverless Framework
-        run: npm install -g serverless
+        run: npm install -g serverless@3
 
       - name: Zip function code
         run: |
