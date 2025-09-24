@@ -46,7 +46,7 @@ jobs:
           RUNTIME: nodejs22   
           HANDLER: index.main 
         run: |
-          curl -X PUT "https://cloudfunctions.apigw.ntruss.com/ncf/api/v2/functions/$FUNCTION_ID" \
+          curl -X PUT "https://cloudfunctions.apigw.ntruss.com/ncf/api/v2" \
           -H "x-ncp-apigw-timestamp: $TIMESTAMP" \
           -H "x-ncp-iam-access-key: $NCP_ACCESS_KEY" \
           -H "x-ncp-apigw-signature-v2: $SIGNATURE" \
