@@ -16,6 +16,7 @@
     "busboy": "^1.6.0",
     "dotenv": "^17.2.2",
     "form-data": "^4.0.4",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "serverless-navercloud": "^1.0.4"
   }
 }

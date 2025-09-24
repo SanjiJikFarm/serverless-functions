@@ -29,6 +29,9 @@ jobs:
       - name: Install Serverless Framework v3 (no login required)
         run: npm install -g serverless@3
 
+      - name: Install serverless-navercloud plugin
+        run: npm install serverless-navercloud
+
       - name: Set environment variables
         run: |
           echo "NCLOUD_ACCESS_KEY=${{ secrets.NCLOUD_ACCESS_KEY }}" >> $GITHUB_ENV
