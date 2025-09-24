@@ -1,5 +1,6 @@
 service: ocr-service
 
+
 provider:
   name: navercloud
   region: kr
