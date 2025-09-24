@@ -1,0 +1,18 @@
+service: ocr-service
+
+provider:
+  name: navercloud
+  region: kr
+
+functions:
+  ocr-receipt-parser:
+    handler: src/index.main
+    runtime: nodejs:22
+    memory: 512
+    timeout: 60000
+    vpc:
+      vpcNo: 124017
+      subnetNo: 261192
+
+plugins:
+  - serverless-navercloud
