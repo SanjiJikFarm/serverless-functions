@@ -1,4 +1,4 @@
-name: Deploy Naver Cloud Function
+name: Deploy to NCP Cloud Functions
 
 on:
   push:
@@ -10,33 +10,26 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Zip function code
-        run: |
-          cd src
-          zip -r ../function.zip .
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16'
 
-      - name: Get current timestamp
-        id: time
-        run: echo "timestamp=$(date +%s000)" >> $GITHUB_OUTPUT
-
-      - name: Generate Signature
-        id: sign
+      - name: Install Serverless Framework and Plugin
         run: |
-          message="${{ steps.time.outputs.timestamp }}\n${{ secrets.NCLOUD_ACCESS_KEY }}\nPUT\n/functions/v2/update"
-          signature=$(echo -en "$message" | openssl dgst -sha256 -hmac "${{ secrets.NCLOUD_SECRET_KEY }}" -binary | base64)
-          echo "signature=$signature" >> $GITHUB_OUTPUT
+          npm install -g serverless
+          npm install -g serverless-tencent-scf  # Note: The official plugin for NCP is often a fork or variant like this.
 
-      - name: Deploy to Naver Cloud Function
+      - name: Configure Serverless credentials
+        env:
+          NCP_ACCESS_KEY: ${{ secrets.NCLOUD_ACCESS_KEY }}
+          NCP_SECRET_KEY: ${{ secrets.NCLOUD_SECRET_KEY }}
         run: |
-          curl -X PUT "https://functions.apigw.ntruss.com/api/functions/v2/update/ocr-receipt-parser" \
-          -H "x-ncp-apigw-timestamp: ${{ steps.time.outputs.timestamp }}" \
-          -H "x-ncp-iam-access-key: ${{ secrets.NCLOUD_ACCESS_KEY }}" \
-          -H "x-ncp-apigw-signature-v2: ${{ steps.sign.outputs.signature }}" \
-          -F "runtime=${{ secrets.RUNTIME }}" \
-          -F "handler=${{ secrets.HANDLER }}" \
-          -F "code=@function.zip"
+          sls config credentials --provider naver-cloud --naver-cloud-access-key $NCP_ACCESS_KEY --naver-cloud-secret-key $NCP_SECRET_KEY
+
+      - name: Deploy to Cloud Functions
+        run: sls deploy --verbose
