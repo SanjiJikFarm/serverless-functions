@@ -9,21 +9,45 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
+  const garbageKeywords = [
+    "주소", "대표", "전화", "사업자", "송순영", "단가", "수량", "금액",
+    "총구매액", "내실금액", "현금", "카드", "승인", "코드", "P", "로컬푸드"
+  ];
+
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
+    // 날짜 
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
-      date = text.split(" ")[0].replace(/-/g, ".");
+      date = text.replace(/-/g, ".");
+      continue;
     }
 
+    // 점포명 
     if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
       storeName = text;
+      continue;
     }
 
-    if (/^[A-Za-z가-힣0-9]{2,}/.test(text)) {
+    // 총 금액 추출
+    if (text.includes("총구매액")) {
+      const amount = fields[i + 1] || "";
+      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
+        totalAmount = amount;
+      }
+      continue;
+    }
+
+    // 쓰레기 필터
+    if (garbageKeywords.some((kw) => text.includes(kw))) {
+      continue;
+    }
+
+    // 품목 추정
+    if (/^[A-Za-z가-힣0-9()]{2,}/.test(text)) {
       let price = null,
-        qty = null,
-        total = null;
+          qty = null,
+          total = null;
       let count = 0;
 
       for (let j = i + 1; j < fields.length && count < 3; j++) {
@@ -37,13 +61,7 @@ function parseReceipt(data) {
 
       if (price && qty && total) {
         items.push({ name: text, price, qty, total });
-      }
-    }
-
-    if (text.includes("총구매액")) {
-      const amount = fields[i + 1] || "";
-      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
-        totalAmount = amount;
+        i += count; 
       }
     }
   }
@@ -55,6 +73,7 @@ function parseReceipt(data) {
     items,
   };
 }
+
 
 // 디폴트 파라미터 기반
 export async function main(args) {
