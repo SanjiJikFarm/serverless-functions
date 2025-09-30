@@ -15,5 +15,12 @@ functions:
     vpc:
       vpcNo: 124017
       subnetNo: 261192
+    environment:
+      NCLOUD_ACCESS_KEY_ID: ${env:NCLOUD_ACCESS_KEY_ID}
+      NCLOUD_SECRET_KEY: ${env:NCLOUD_SECRET_KEY}
+      CLOVA_OCR_SECRET: ${env:CLOVA_OCR_SECRET}
+      CLOVA_OCR_URL: ${env:CLOVA_OCR_URL}
+      NCP_BUCKET: ${env:NCP_BUCKET}
+      NCP_REGION: ${env:NCP_REGION}
 plugins:
   - serverless-navercloud
