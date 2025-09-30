@@ -69,8 +69,8 @@ export async function main(args) {
     } = args;
 
     const NCP_BUCKET = process.env.NCP_BUCKET;
-    const NCP_ACCESS_KEY = process.env.NCP_ACCESS_KEY;
-    const NCP_SECRET_KEY = process.env.NCP_SECRET_KEY;
+    const NCLOUD_ACCESS_KEY_ID = process.env.NCLOUD_ACCESS_KEY_ID;
+    const NCLOUD_SECRET_KEY = process.env.NCLOUD_SECRET_KEY;
     const NCP_REGION = process.env.NCP_REGION;
     const CLOVA_OCR_SECRET = process.env.CLOVA_OCR_SECRET;
     const CLOVA_OCR_URL = process.env.CLOVA_OCR_URL;
@@ -90,8 +90,8 @@ export async function main(args) {
       endpoint: "https://kr.object.ncloudstorage.com",
       region: NCP_REGION,
       credentials: {
-        accessKeyId: NCP_ACCESS_KEY,
-        secretAccessKey: NCP_SECRET_KEY,
+        accessKeyId: NCLOUD_ACCESS_KEY_ID,
+        secretAccessKey: NCLOUD_SECRET_KEY,
       },
     });
 
