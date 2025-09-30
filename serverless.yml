@@ -16,11 +16,11 @@ functions:
       vpcNo: 124017
       subnetNo: 261192
     environment:
-      CLOVA_OCR_SECRET: ${env:CLOVA_OCR_SECRET}
-      CLOVA_OCR_URL: ${env:CLOVA_OCR_URL}
-      NCP_BUCKET: ${env:NCP_BUCKET}
-      NCP_ACCESS_KEY: ${env:NCP_ACCESS_KEY}
-      NCP_SECRET_KEY: ${env:NCP_SECRET_KEY}
-      NCP_REGION: ${env:NCP_REGION}
+     CLOVA_OCR_SECRET: ${{ secrets.CLOVA_OCR_SECRET }}
+     CLOVA_OCR_URL: ${{ secrets.CLOVA_OCR_URL }}
+     NCP_BUCKET: ${{ secrets.NCP_BUCKET }}
+     NCP_ACCESS_KEY: ${{ secrets.NCP_ACCESS_KEY }}
+     NCP_SECRET_KEY: ${{ secrets.NCP_SECRET_KEY }}
+     NCP_REGION: ${{ secrets.NCP_REGION }}
 plugins:
   - serverless-navercloud
