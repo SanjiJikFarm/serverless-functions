@@ -61,6 +61,10 @@ function parseReceipt(data) {
 }
 
 // 메인 엔트리 함수
+console.log("환경변수 디버깅:");
+console.log("NCP_BUCKET =", process.env.NCP_BUCKET);
+console.log("CLOVA_OCR_SECRET =", process.env.CLOVA_OCR_SECRET);
+
 export async function main(args) {
   try {
     const {
