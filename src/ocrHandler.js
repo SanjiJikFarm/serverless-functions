@@ -19,40 +19,46 @@ function isValidItem(name, price, qty, total) {
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
   const items = [];
+  let totalAmount = null;
   let storeName = null;
   let date = null;
-  let totalAmount = null;
 
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 상호명
-    if (!storeName && /로컬푸드직매장/.test(text)) {
+    if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
+      date = text.split(" ")[0].replace(/-/g, ".");
+    }
+
+    if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
       storeName = text;
     }
 
-    // 날짜
-    if (!date && /^\d{4}-\d{2}-\d{2}/.test(text)) {
-      date = text.replace(/-/g, ".");
-    }
+    // 상품명 + 금액
+    if (text.startsWith("P")) {
+      let price = null, qty = null, total = null;
+      let count = 0;
 
-    // 총구매액
-    if (!totalAmount && /총\s*구매액/.test(text)) {
-      const next = fields[i + 1];
-      if (/^\d{1,3}(,\d{3})*$/.test(next)) {
-        totalAmount = next;
+      for (let j = i + 1; j < fields.length && count < 3; j++) {
+        if (/^\d{1,3}(,\d{3})*$/.test(fields[j])) {
+          if (!price) price = fields[j];
+          else if (!qty) qty = fields[j];
+          else if (!total) total = fields[j];
+          count++;
+        }
+      }
+
+      if (price && qty && total) {
+        items.push({ name: text, price, qty, total });
       }
     }
 
-    // 품목 추출 로직
-    const name = text;
-    const price = fields[i + 1];
-    const qty = fields[i + 2];
-    const total = fields[i + 3];
-
-    if (price && qty && total && isValidItem(name, price, qty, total)) {
-      items.push({ name, price, qty, total });
-      i += 3; 
+    // 총구매액
+    if (text.includes("총구매액")) {
+      const amount = fields[i + 1] || "";
+      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
+        totalAmount = amount;
+      }
     }
   }
 
@@ -63,6 +69,7 @@ function parseReceipt(data) {
     items,
   };
 }
+
 
 export async function main(args) {
   console.log("디버깅: args =", JSON.stringify(args, null, 2));
