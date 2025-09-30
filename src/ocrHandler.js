@@ -66,20 +66,20 @@ export async function main(args) {
     const {
       userId = "testuser",
       imageBase64,
-      NCP_BUCKET,
-      NCP_ACCESS_KEY,
-      NCP_SECRET_KEY,
-      NCP_REGION,
-      CLOVA_OCR_SECRET,
-      CLOVA_OCR_URL,
     } = args;
+
+    const NCP_BUCKET = process.env.NCP_BUCKET;
+    const NCP_ACCESS_KEY = process.env.NCP_ACCESS_KEY;
+    const NCP_SECRET_KEY = process.env.NCP_SECRET_KEY;
+    const NCP_REGION = process.env.NCP_REGION;
+    const CLOVA_OCR_SECRET = process.env.CLOVA_OCR_SECRET;
+    const CLOVA_OCR_URL = process.env.CLOVA_OCR_URL;
 
     if (!imageBase64) {
       return {
         statusCode: 400,
         headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ error: "imageBase64가 전달되지 않았습니다." }),
       };
@@ -139,7 +139,6 @@ export async function main(args) {
         statusCode: 500,
         headers: {
           "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
         },
         body: JSON.stringify({ error: "OCR 응답 형식이 유효하지 않음", raw: data }),
       };
@@ -151,7 +150,6 @@ export async function main(args) {
       statusCode: 200,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify(parsed),
     };
@@ -161,7 +159,6 @@ export async function main(args) {
       statusCode: 500,
       headers: {
         "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
       },
       body: JSON.stringify({ error: err.message || "알 수 없는 오류" }),
     };
