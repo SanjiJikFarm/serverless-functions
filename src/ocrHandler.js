@@ -64,7 +64,7 @@ function parseReceipt(data) {
 export async function main(args) {
   try {
     const {
-      userId = "testuser",
+      username,
       imageBase64,
     } = args;
 
@@ -96,7 +96,7 @@ export async function main(args) {
     });
 
     const ext = "jpg";
-    const key = `uploads/${userId}/${Date.now()}.${ext}`;
+    const key = `uploads/${username}/${Date.now()}.${ext}`;
     const buffer = Buffer.from(imageBase64, "base64");
 
     await s3
