@@ -12,17 +12,14 @@ function parseReceipt(data) {
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 날짜 추출
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
       date = text.split(" ")[0].replace(/-/g, ".");
     }
 
-    // 매장명 추출
     if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
       storeName = text;
     }
 
-    // 상품명 + 금액
     if (/^[A-Za-z가-힣0-9]{2,}/.test(text)) {
       let price = null,
         qty = null,
@@ -43,7 +40,6 @@ function parseReceipt(data) {
       }
     }
 
-    // 총구매액 추출
     if (text.includes("총구매액")) {
       const amount = fields[i + 1] || "";
       if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
@@ -60,36 +56,31 @@ function parseReceipt(data) {
   };
 }
 
-// 메인 엔트리 함수
-console.log("환경변수 디버깅:");
-console.log("NCP_BUCKET =", process.env.NCP_BUCKET);
-console.log("CLOVA_OCR_SECRET =", process.env.CLOVA_OCR_SECRET);
-
+// 디폴트 파라미터 기반
 export async function main(args) {
+  console.log("디버깅: args =", JSON.stringify(args, null, 2));
+
   try {
     const {
       username,
       imageBase64,
+      NCP_BUCKET,
+      NCLOUD_ACCESS_KEY_ID,
+      NCLOUD_SECRET_KEY,
+      NCP_REGION,
+      CLOVA_OCR_SECRET,
+      CLOVA_OCR_URL,
     } = args;
-
-    const NCP_BUCKET = process.env.NCP_BUCKET;
-    const NCLOUD_ACCESS_KEY_ID = process.env.NCLOUD_ACCESS_KEY_ID;
-    const NCLOUD_SECRET_KEY = process.env.NCLOUD_SECRET_KEY;
-    const NCP_REGION = process.env.NCP_REGION;
-    const CLOVA_OCR_SECRET = process.env.CLOVA_OCR_SECRET;
-    const CLOVA_OCR_URL = process.env.CLOVA_OCR_URL;
 
     if (!imageBase64) {
       return {
         statusCode: 400,
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ error: "imageBase64가 전달되지 않았습니다." }),
       };
     }
 
-    // S3 설정
+    // AWS S3 설정
     const s3 = new AWS.S3({
       endpoint: "https://kr.object.ncloudstorage.com",
       region: NCP_REGION,
@@ -141,9 +132,7 @@ export async function main(args) {
       console.error("❗ OCR 응답 오류:", JSON.stringify(data, null, 2));
       return {
         statusCode: 500,
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ error: "OCR 응답 형식이 유효하지 않음", raw: data }),
       };
     }
@@ -152,18 +141,14 @@ export async function main(args) {
 
     return {
       statusCode: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(parsed),
     };
   } catch (err) {
     console.error("🔥 서버 오류:", err);
     return {
       statusCode: 500,
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ error: err.message || "알 수 없는 오류" }),
     };
   }
