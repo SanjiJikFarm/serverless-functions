@@ -23,8 +23,10 @@ function parseReceipt(data) {
     }
 
     // 상품명 + 금액
-    if (text.startsWith("P")) {
-      let price = null, qty = null, total = null;
+    if (/^[A-Za-z가-힣0-9]{2,}/.test(text)) {
+      let price = null,
+        qty = null,
+        total = null;
       let count = 0;
 
       for (let j = i + 1; j < fields.length && count < 3; j++) {
@@ -73,7 +75,14 @@ export async function main(args) {
     } = args;
 
     if (!imageBase64) {
-      return { error: "imageBase64가 전달되지 않았습니다." };
+      return {
+        statusCode: 400,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify({ error: "imageBase64가 전달되지 않았습니다." }),
+      };
     }
 
     // S3 설정
@@ -86,22 +95,23 @@ export async function main(args) {
       },
     });
 
-    // 이미지 업로드
-    const key = `uploads/${userId}/${Date.now()}.jpg`;
+    const ext = "jpg";
+    const key = `uploads/${userId}/${Date.now()}.${ext}`;
     const buffer = Buffer.from(imageBase64, "base64");
 
-    await s3.putObject({
-      Bucket: NCP_BUCKET,
-      Key: key,
-      Body: buffer,
-      ContentType: "image/jpeg",
-    }).promise();
+    await s3
+      .putObject({
+        Bucket: NCP_BUCKET,
+        Key: key,
+        Body: buffer,
+        ContentType: "image/jpeg",
+      })
+      .promise();
 
-    // Presigned URL 생성
     const imageUrl = s3.getSignedUrl("getObject", {
       Bucket: NCP_BUCKET,
       Key: key,
-      Expires: 600, // 10분
+      Expires: 600,
     });
 
     // Clova OCR 요청
@@ -124,20 +134,36 @@ export async function main(args) {
     const data = response.data;
 
     if (!data?.images?.[0]?.fields) {
-      return { error: "OCR 응답 형식이 유효하지 않음", raw: data };
+      console.error("❗ OCR 응답 오류:", JSON.stringify(data, null, 2));
+      return {
+        statusCode: 500,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+        },
+        body: JSON.stringify({ error: "OCR 응답 형식이 유효하지 않음", raw: data }),
+      };
     }
 
-    // 파싱
     const parsed = parseReceipt(data);
 
-    // 저장 없이 결과만 리턴
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
       body: JSON.stringify(parsed),
     };
   } catch (err) {
-    console.error("🔥 에러 발생:", err);
-    return { error: err.message || "알 수 없는 오류" };
+    console.error("🔥 서버 오류:", err);
+    return {
+      statusCode: 500,
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+      body: JSON.stringify({ error: err.message || "알 수 없는 오류" }),
+    };
   }
 }
