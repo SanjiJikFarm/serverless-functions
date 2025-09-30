@@ -31,7 +31,7 @@ jobs:
       - name: Install serverless-navercloud plugin
         run: npm install serverless-navercloud
 
-      - name: Set environment variables
+      - name: Deploy with Serverless Framework
         env:
           NCLOUD_ACCESS_KEY_ID: ${{ secrets.NCLOUD_ACCESS_KEY_ID }}
           NCLOUD_SECRET_KEY: ${{ secrets.NCLOUD_SECRET_KEY }}
@@ -39,7 +39,4 @@ jobs:
           CLOVA_OCR_URL: ${{ secrets.CLOVA_OCR_URL }}
           NCP_BUCKET: ${{ secrets.NCP_BUCKET }}
           NCP_REGION: ${{ secrets.NCP_REGION }}
-        run: echo "환경변수 세팅 완료"
-
-      - name: Deploy with Serverless Framework
         run: serverless deploy
