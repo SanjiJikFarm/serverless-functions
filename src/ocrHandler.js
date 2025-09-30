@@ -1,68 +1,58 @@
 import axios from "axios";
 import AWS from "aws-sdk";
 
-// OCR 결과 파싱 함수
+function isValidItem(name, price, qty, total) {
+  const onlyNumber = (s) => /^\d{1,3}(,\d{3})*$/.test(s);
+  const hasHangul = (s) => /[가-힣]/.test(s);
+  const isLikelyCode = (s) => /^[0-9]{3}$|^[0-9]{3}-[0-9]{5,}$/.test(s);
+
+  if (!hasHangul(name) || isLikelyCode(name)) return false;
+  if (!(onlyNumber(price) && onlyNumber(qty) && onlyNumber(total))) return false;
+
+  const totalNumber = parseInt(total.replace(/,/g, ""));
+  if (totalNumber <= 0) return false;
+
+  return true;
+}
+
+// OCR 파싱 함수 
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
   const items = [];
-  let totalAmount = null;
   let storeName = null;
   let date = null;
-
-  const garbageKeywords = [
-    "주소", "대표", "전화", "사업자", "송순영", "단가", "수량", "금액",
-    "총구매액", "내실금액", "현금", "카드", "승인", "코드", "P", "로컬푸드"
-  ];
+  let totalAmount = null;
 
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 날짜 
-    if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
-      date = text.replace(/-/g, ".");
-      continue;
-    }
-
-    // 점포명 
-    if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
+    // 상호명
+    if (!storeName && /로컬푸드직매장/.test(text)) {
       storeName = text;
-      continue;
     }
 
-    // 총 금액 추출
-    if (text.includes("총구매액")) {
-      const amount = fields[i + 1] || "";
-      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
-        totalAmount = amount;
-      }
-      continue;
+    // 날짜
+    if (!date && /^\d{4}-\d{2}-\d{2}/.test(text)) {
+      date = text.replace(/-/g, ".");
     }
 
-    // 쓰레기 필터
-    if (garbageKeywords.some((kw) => text.includes(kw))) {
-      continue;
+    // 총구매액
+    if (!totalAmount && /총\s*구매액/.test(text)) {
+      const next = fields[i + 1];
+      if (/^\d{1,3}(,\d{3})*$/.test(next)) {
+        totalAmount = next;
+      }
     }
 
-    // 품목 추정
-    if (/^[A-Za-z가-힣0-9()]{2,}/.test(text)) {
-      let price = null,
-          qty = null,
-          total = null;
-      let count = 0;
+    // 품목 추출 로직
+    const name = text;
+    const price = fields[i + 1];
+    const qty = fields[i + 2];
+    const total = fields[i + 3];
 
-      for (let j = i + 1; j < fields.length && count < 3; j++) {
-        if (/^\d{1,3}(,\d{3})*$/.test(fields[j])) {
-          if (!price) price = fields[j];
-          else if (!qty) qty = fields[j];
-          else if (!total) total = fields[j];
-          count++;
-        }
-      }
-
-      if (price && qty && total) {
-        items.push({ name: text, price, qty, total });
-        i += count; 
-      }
+    if (price && qty && total && isValidItem(name, price, qty, total)) {
+      items.push({ name, price, qty, total });
+      i += 3; 
     }
   }
 
@@ -74,8 +64,6 @@ function parseReceipt(data) {
   };
 }
 
-
-// 디폴트 파라미터 기반
 export async function main(args) {
   console.log("디버깅: args =", JSON.stringify(args, null, 2));
 
