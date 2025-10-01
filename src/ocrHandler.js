@@ -1,6 +1,7 @@
 import axios from "axios";
 import AWS from "aws-sdk";
 
+
 // OCR 파싱 함수 
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
@@ -16,7 +17,6 @@ function parseReceipt(data) {
     return !skipNumberPrefixes.some((p) => val.startsWith(p));
   };
 
-
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
@@ -30,7 +30,7 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-    // 상품 시작
+    // 상품 
     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
       let name = text.replace(/^P\s*/, '');
 
@@ -41,6 +41,8 @@ function parseReceipt(data) {
         name = maybeNext.trim();
         i++; 
       }
+
+      name = name.replace(/^P\s*/, '');
 
       let price = null, qty = null, total = null;
       let count = 0;
@@ -54,10 +56,8 @@ function parseReceipt(data) {
         }
       }
 
-
-
       if (price && qty && total) {
-        items.push({ name: text, price, qty, total });
+        items.push({ name, price, qty, total });
       }
     }
 
