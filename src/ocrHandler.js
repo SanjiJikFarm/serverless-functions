@@ -22,7 +22,7 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-    // 상품명은 반드시 'P'로 시작해야 함
+    // 상품명
     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
       let name = text.replace(/^P\s*/, '');
       let price = null, qty = null, total = null;
@@ -41,8 +41,9 @@ function parseReceipt(data) {
     }
     i += lookahead - 1;
 
+    name = name.replace(/\b로컬푸드\b/g, '').trim();
 
-      // 숫자 3개(price, qty, total) 추출 
+    // 숫자 3개(price, qty, total) 추출 
     let count = 0;
     let j = i + 1;
     while (j < fields.length && count < 3) {
