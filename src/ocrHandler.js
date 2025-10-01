@@ -9,14 +9,18 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
-  // 바코드 / 상품코드 제거용
+  // 바코드/상품코드 제거
   const skipNumberPrefixes = ['*', '880', '2100'];
   const isValidNumber = (val) => {
     if (!/^\d+$/.test(val)) return false;
     return !skipNumberPrefixes.some((p) => val.startsWith(p));
   };
 
-  // price * qty ≈ total 되는 조합 찾기
+  // 상품명 여부
+  const isProductLine = (text) =>
+    /^P\s?[가-힣a-zA-Z]/.test(text) || /로컬푸드/.test(text);
+
+  
   function getBestTriple(numbers) {
     if (numbers.length < 3) return null;
 
@@ -32,7 +36,6 @@ function parseReceipt(data) {
         }
       }
     }
-
     return null;
   }
 
@@ -49,37 +52,45 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-    // 상품 시작
-    if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
+    // 상품 
+    if (isProductLine(text)) {
       let name = text.replace(/^P\s*/, '');
-      const maybeNext = fields[i + 1] || '';
 
-      if ((name.includes('로컬푸드') || name === '·' || name.length <= 2) &&
-          /^[가-힣a-zA-Z\s]+$/.test(maybeNext)) {
-        name = maybeNext.trim();
+      const maybeNext = fields[i + 1] || '';
+      if (/^[가-힣a-zA-Z\s]+$/.test(maybeNext) && !isValidNumber(maybeNext)) {
+        name += " " + maybeNext.trim();
         i++;
       }
 
       name = name.replace(/^P\s*/, '');
 
-      // 다음 상품이 나올 때까지 숫자 수집
       let numberCandidates = [];
       let j = i + 1;
 
-      while (j < fields.length && !/^P\s?[가-힣a-zA-Z]/.test(fields[j])) {
+      while (
+        j < fields.length &&
+        !isProductLine(fields[j]) &&
+        !/총\s*구\s*매\s*액/.test(fields[j])
+      ) {
         const val = fields[j].replace(/,/g, '');
-        if (isValidNumber(val)) {
-          numberCandidates.push(val);
-        }
+        if (isValidNumber(val)) numberCandidates.push(val);
         j++;
       }
 
-      const best = getBestTriple(numberCandidates);
-      if (best) {
-        items.push({ name, ...best });
+      // 최적 조합 찾기
+      let best = getBestTriple(numberCandidates);
+
+      if (!best && numberCandidates.length >= 3) {
+        best = {
+          price: numberCandidates[0],
+          qty: numberCandidates[1],
+          total: numberCandidates[2],
+        };
       }
 
-      i = j - 1; // 다음 상품으로 이동
+      if (best) items.push({ name, ...best });
+
+      i = j - 1; 
     }
 
     // 총구매액
@@ -98,8 +109,6 @@ function parseReceipt(data) {
     items,
   };
 }
-
-
 
 
 export async function main(args) {
