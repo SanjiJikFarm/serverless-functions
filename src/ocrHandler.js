@@ -10,7 +10,7 @@ function parseReceipt(data) {
   let date = null;
 
   // 숫자 필터: 바코드/상품코드 제외
-  const skipNumberPrefixes = ['880', '2100'];
+  const skipNumberPrefixes = ['*', '880', '2100'];  // ← * 추가
   const isValidNumber = (val) => {
     if (!/^\d+$/.test(val)) return false;
     return !skipNumberPrefixes.some((p) => val.startsWith(p));
