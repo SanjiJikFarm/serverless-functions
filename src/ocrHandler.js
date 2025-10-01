@@ -1,7 +1,7 @@
 import axios from "axios";
 import AWS from "aws-sdk";
 
-// OCR 파싱 함수
+// OCR 파싱 함수 
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
   const items = [];
@@ -9,95 +9,52 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
-  // 바코드/상품코드 제거
-  const skipNumberPrefixes = ['*', '880', '2100'];
-  const isValidNumber = (val) => {
-    if (!/^\d+$/.test(val)) return false;
-    return !skipNumberPrefixes.some((p) => val.startsWith(p));
-  };
-
-  // 상품명 여부
-  const isProductLine = (text) =>
-    /^P\s?[가-힣a-zA-Z]/.test(text) || /로컬푸드/.test(text);
-
-  
-  function getBestTriple(numbers) {
-    if (numbers.length < 3) return null;
-
-    for (let a of numbers) {
-      for (let b of numbers) {
-        if (b === a) continue;
-        for (let c of numbers) {
-          if (c === a || c === b) continue;
-          const [p, q, t] = [parseInt(a), parseInt(b), parseInt(c)];
-          if (p * q === t || Math.abs(p * q - t) <= 1) {
-            return { price: a, qty: b, total: c };
-          }
-        }
-      }
-    }
-    return null;
-  }
-
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 날짜
+    // 날짜 
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
-      date = text.match(/\d{4}[.\-]\d{2}[.\-]\d{2}/)[0].replace(/-/g, ".");
+      date = text.split(" ")[0].replace(/-/g, ".");
     }
 
-    // 점포명
+    // 점포 이름
     if (!storeName && /(로컬푸드|직매장|하나로마트|농협)/.test(text)) {
       storeName = text;
     }
 
-    // 상품 
-    if (isProductLine(text)) {
-      let name = text.replace(/^P\s*/, '');
+     // 상품명 + 금액
+     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
+      let name = text.replace(/^P\s*/, ''); 
+      let price = null, qty = null, total = null;
 
-      const maybeNext = fields[i + 1] || '';
-      if (/^[가-힣a-zA-Z\s]+$/.test(maybeNext) && !isValidNumber(maybeNext)) {
-        name += " " + maybeNext.trim();
-        i++;
+      const maybeNext = fields[i + 1] || "";
+      if (/^[^\d]*$/.test(maybeNext) && !/^(\*|880|2100)/.test(maybeNext)) {
+        name += " " + maybeNext;
+        i++; 
       }
 
-      name = name.replace(/^P\s*/, '');
-
-      let numberCandidates = [];
-      let j = i + 1;
-
-      while (
-        j < fields.length &&
-        !isProductLine(fields[j]) &&
-        !/총\s*구\s*매\s*액/.test(fields[j])
-      ) {
+      let count = 0;
+      for (let j = i + 1; j < fields.length && count < 3; j++) {
         const val = fields[j].replace(/,/g, '');
-        if (isValidNumber(val)) numberCandidates.push(val);
-        j++;
+        if (/^\d+$/.test(val)) {
+          if (!price) price = val;
+          else if (!qty) qty = val;
+          else if (!total) total = val;
+          count++;
+        }
       }
 
-      // 최적 조합 찾기
-      let best = getBestTriple(numberCandidates);
 
-      if (!best && numberCandidates.length >= 3) {
-        best = {
-          price: numberCandidates[0],
-          qty: numberCandidates[1],
-          total: numberCandidates[2],
-        };
+      if (price && qty && total) {
+        items.push({ name: text, price, qty, total });
       }
-
-      if (best) items.push({ name, ...best });
-
-      i = j - 1; 
     }
 
     // 총구매액
-    if (/총\s*구\s*매\s*액/.test(text)) {
-      const next = fields[i + 1]?.replace(/,/g, '');
-      if (/^\d+$/.test(next)) {
-        totalAmount = next;
+    if (text.includes("총구매액")) {
+      const amount = fields[i + 1] || "";
+      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
+        totalAmount = amount;
       }
     }
   }
