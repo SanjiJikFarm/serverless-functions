@@ -9,6 +9,14 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
+  // 바코드/상품코드 필터
+  const skipNumberPrefixes = ['880', '2100'];
+  const isValidNumber = (val) => {
+    if (!/^\d+$/.test(val)) return false;
+    return !skipNumberPrefixes.some((p) => val.startsWith(p));
+  };
+
+
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
@@ -22,21 +30,23 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-     // 상품명 + 금액
-     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
-      let name = text.replace(/^P\s*/, ''); 
-      let price = null, qty = null, total = null;
+    // 상품 시작
+    if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
+      let name = text.replace(/^P\s*/, '');
 
-      const maybeNext = fields[i + 1] || "";
-      if (/^[^\d]*$/.test(maybeNext) && !/^(\*|880|2100)/.test(maybeNext)) {
-        name += " " + maybeNext;
+      // 'P로컬푸드' 같은 경우 다음 줄 붙이기
+      const maybeNext = fields[i + 1] || '';
+      if ((name.includes('로컬푸드') || name === '·' || name.length <= 2) &&
+          /^[가-힣a-zA-Z\s]+$/.test(maybeNext)) {
+        name = maybeNext.trim();
         i++; 
       }
 
+      let price = null, qty = null, total = null;
       let count = 0;
-      for (let j = i + 1; j < fields.length && count < 3; j++) {
-        const val = fields[j].replace(/,/g, '');
-        if (/^\d+$/.test(val)) {
+      for (let j = i + 1; j < fields.length && count < 4; j++) {
+        let val = fields[j].replace(/,/g, '');
+        if (isValidNumber(val)) {
           if (!price) price = val;
           else if (!qty) qty = val;
           else if (!total) total = val;
@@ -45,16 +55,17 @@ function parseReceipt(data) {
       }
 
 
+
       if (price && qty && total) {
         items.push({ name: text, price, qty, total });
       }
     }
 
     // 총구매액
-    if (text.includes("총구매액")) {
-      const amount = fields[i + 1] || "";
-      if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
-        totalAmount = amount;
+    if (/총\s*구\s*매\s*액/.test(text)) {
+      const next = fields[i + 1]?.replace(/,/g, '');
+      if (/^\d+$/.test(next)) {
+        totalAmount = next;
       }
     }
   }
