@@ -1,8 +1,7 @@
 import axios from "axios";
 import AWS from "aws-sdk";
 
-
-// OCR 파싱 함수 
+// OCR 파싱 함수
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
   const items = [];
@@ -10,7 +9,7 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
-  // 바코드/상품코드 필터
+  // 숫자 필터: 바코드/상품코드 제외
   const skipNumberPrefixes = ['880', '2100'];
   const isValidNumber = (val) => {
     if (!/^\d+$/.test(val)) return false;
@@ -20,7 +19,7 @@ function parseReceipt(data) {
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 날짜 
+    // 날짜
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
       date = text.split(" ")[0].replace(/-/g, ".");
     }
@@ -30,11 +29,10 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-    // 상품 
+    // 상품명 
     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
       let name = text.replace(/^P\s*/, '');
 
-      // 'P로컬푸드' 같은 경우 다음 줄 붙이기
       const maybeNext = fields[i + 1] || '';
       if ((name.includes('로컬푸드') || name === '·' || name.length <= 2) &&
           /^[가-힣a-zA-Z\s]+$/.test(maybeNext)) {
@@ -42,12 +40,14 @@ function parseReceipt(data) {
         i++; 
       }
 
+      // P 제거
       name = name.replace(/^P\s*/, '');
 
+      // 가격, 수량, 총액 추출
       let price = null, qty = null, total = null;
       let count = 0;
       for (let j = i + 1; j < fields.length && count < 4; j++) {
-        let val = fields[j].replace(/,/g, '');
+        const val = fields[j].replace(/,/g, '');
         if (isValidNumber(val)) {
           if (!price) price = val;
           else if (!qty) qty = val;
@@ -56,7 +56,13 @@ function parseReceipt(data) {
         }
       }
 
+      // 순서가 꼬인 경우 교정
       if (price && qty && total) {
+        const p = parseInt(price), q = parseInt(qty), t = parseInt(total);
+        if (p < 100 && q < 10 && t > 1000) {
+          [price, qty, total] = [total, price, qty];
+        }
+
         items.push({ name, price, qty, total });
       }
     }
@@ -77,7 +83,6 @@ function parseReceipt(data) {
     items,
   };
 }
-
 
 export async function main(args) {
   console.log("디버깅: args =", JSON.stringify(args, null, 2));
