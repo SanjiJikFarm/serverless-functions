@@ -22,42 +22,47 @@ function parseReceipt(data) {
       storeName = text;
     }
 
-    // 상품명 시작
+    // 상품명은 반드시 'P'로 시작해야 함
     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
       let name = text.replace(/^P\s*/, '');
       let price = null, qty = null, total = null;
 
-      // 다음 줄이 이름의 일부인 경우 붙임
-      let lookahead = 1;
-      while (
-        fields[i + lookahead] &&
-        !/^\d/.test(fields[i + lookahead]) &&
-        !/^(\*|880|2100)/.test(fields[i + lookahead]) &&
-        !/^P\s?[가-힣a-zA-Z]/.test(fields[i + lookahead])
-      ) {
-        name += " " + fields[i + lookahead];
-        lookahead++;
-      }
-      i += lookahead - 1;
+    // 상품명 여러 줄 추출
+    let lookahead = 1;
+    while (
+      fields[i + lookahead] &&
+      /^[가-힣a-zA-Z0-9]+$/.test(fields[i + lookahead]) && 
+      !/^\d+$/.test(fields[i + lookahead]) &&               
+      !/^(\*|880|2100)/.test(fields[i + lookahead]) &&       
+      !/^P\s?[가-힣a-zA-Z]/.test(fields[i + lookahead])     
+    ) {
+      name += " " + fields[i + lookahead];
+      lookahead++;
+    }
+    i += lookahead - 1;
 
-      // 가격/수량/합계 추출
-      let count = 0;
-      for (let j = i + 1; j < fields.length && count < 3; j++) {
-        const val = fields[j].replace(/,/g, '');
-        if (/^\d+$/.test(val)) {
+
+      // 숫자 3개(price, qty, total) 추출 
+    let count = 0;
+    let j = i + 1;
+    while (j < fields.length && count < 3) {
+      const val = fields[j].replace(/,/g, '');
+      if (/^\d+$/.test(val)) {
           if (!price) price = val;
           else if (!qty) qty = val;
           else if (!total) total = val;
           count++;
         }
+        j++;
       }
 
-      if (price && qty && total) {
+    // 세 값 다 있으면 추가
+    if (price && qty && total) {
         items.push({ name, price, qty, total });
       }
     }
 
-    // 총 금액
+    // 총 구매액
     if (text.includes("총구매액")) {
       const amount = fields[i + 1] || "";
       if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
