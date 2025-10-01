@@ -1,20 +1,6 @@
 import axios from "axios";
 import AWS from "aws-sdk";
 
-function isValidItem(name, price, qty, total) {
-  const onlyNumber = (s) => /^\d{1,3}(,\d{3})*$/.test(s);
-  const hasHangul = (s) => /[가-힣]/.test(s);
-  const isLikelyCode = (s) => /^[0-9]{3}$|^[0-9]{3}-[0-9]{5,}$/.test(s);
-
-  if (!hasHangul(name) || isLikelyCode(name)) return false;
-  if (!(onlyNumber(price) && onlyNumber(qty) && onlyNumber(total))) return false;
-
-  const totalNumber = parseInt(total.replace(/,/g, ""));
-  if (totalNumber <= 0) return false;
-
-  return true;
-}
-
 // OCR 파싱 함수 
 function parseReceipt(data) {
   const fields = data.images[0].fields.map((f) => f.inferText.trim());
@@ -26,27 +12,38 @@ function parseReceipt(data) {
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
+    // 날짜 
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
       date = text.split(" ")[0].replace(/-/g, ".");
     }
 
-    if (!storeName && /(로컬푸드|직매장|마트|판매장)/.test(text)) {
+    // 점포 이름
+    if (!storeName && /(로컬푸드|직매장|하나로마트|농협)/.test(text)) {
       storeName = text;
     }
 
-    // 상품명 + 금액
-    if (text.startsWith("P")) {
+     // 상품명 + 금액
+     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
+      let name = text.replace(/^P\s*/, ''); 
       let price = null, qty = null, total = null;
-      let count = 0;
 
+      const maybeNext = fields[i + 1] || "";
+      if (/^[^\d]*$/.test(maybeNext) && !/^(\*|880|2100)/.test(maybeNext)) {
+        name += " " + maybeNext;
+        i++; 
+      }
+
+      let count = 0;
       for (let j = i + 1; j < fields.length && count < 3; j++) {
-        if (/^\d{1,3}(,\d{3})*$/.test(fields[j])) {
-          if (!price) price = fields[j];
-          else if (!qty) qty = fields[j];
-          else if (!total) total = fields[j];
+        const val = fields[j].replace(/,/g, '');
+        if (/^\d+$/.test(val)) {
+          if (!price) price = val;
+          else if (!qty) qty = val;
+          else if (!total) total = val;
           count++;
         }
       }
+
 
       if (price && qty && total) {
         items.push({ name: text, price, qty, total });
