@@ -9,62 +9,77 @@ function parseReceipt(data) {
   let storeName = null;
   let date = null;
 
-  // 숫자 필터: 바코드/상품코드 제외
-  const skipNumberPrefixes = ['*', '880', '2100'];  // ← * 추가
+  // 바코드 / 상품코드 제거용
+  const skipNumberPrefixes = ['*', '880', '2100'];
   const isValidNumber = (val) => {
     if (!/^\d+$/.test(val)) return false;
     return !skipNumberPrefixes.some((p) => val.startsWith(p));
   };
+
+  // price * qty ≈ total 되는 조합 찾기
+  function getBestTriple(numbers) {
+    if (numbers.length < 3) return null;
+
+    for (let a of numbers) {
+      for (let b of numbers) {
+        if (b === a) continue;
+        for (let c of numbers) {
+          if (c === a || c === b) continue;
+          const [p, q, t] = [parseInt(a), parseInt(b), parseInt(c)];
+          if (p * q === t || Math.abs(p * q - t) <= 1) {
+            return { price: a, qty: b, total: c };
+          }
+        }
+      }
+    }
+
+    return null;
+  }
 
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
     // 날짜
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
-      date = text.split(" ")[0].replace(/-/g, ".");
+      date = text.match(/\d{4}[.\-]\d{2}[.\-]\d{2}/)[0].replace(/-/g, ".");
     }
 
-    // 점포 이름
+    // 점포명
     if (!storeName && /(로컬푸드|직매장|하나로마트|농협)/.test(text)) {
       storeName = text;
     }
 
-    // 상품명 
+    // 상품 시작
     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
       let name = text.replace(/^P\s*/, '');
-
       const maybeNext = fields[i + 1] || '';
+
       if ((name.includes('로컬푸드') || name === '·' || name.length <= 2) &&
           /^[가-힣a-zA-Z\s]+$/.test(maybeNext)) {
         name = maybeNext.trim();
-        i++; 
+        i++;
       }
 
-      // P 제거
       name = name.replace(/^P\s*/, '');
 
-      // 가격, 수량, 총액 추출
-      let price = null, qty = null, total = null;
-      let count = 0;
-      for (let j = i + 1; j < fields.length && count < 4; j++) {
+      // 다음 상품이 나올 때까지 숫자 수집
+      let numberCandidates = [];
+      let j = i + 1;
+
+      while (j < fields.length && !/^P\s?[가-힣a-zA-Z]/.test(fields[j])) {
         const val = fields[j].replace(/,/g, '');
         if (isValidNumber(val)) {
-          if (!price) price = val;
-          else if (!qty) qty = val;
-          else if (!total) total = val;
-          count++;
+          numberCandidates.push(val);
         }
+        j++;
       }
 
-      // 순서가 꼬인 경우 교정
-      if (price && qty && total) {
-        const p = parseInt(price), q = parseInt(qty), t = parseInt(total);
-        if (p < 100 && q < 10 && t > 1000) {
-          [price, qty, total] = [total, price, qty];
-        }
-
-        items.push({ name, price, qty, total });
+      const best = getBestTriple(numberCandidates);
+      if (best) {
+        items.push({ name, ...best });
       }
+
+      i = j - 1; // 다음 상품으로 이동
     }
 
     // 총구매액
@@ -83,6 +98,9 @@ function parseReceipt(data) {
     items,
   };
 }
+
+
+
 
 export async function main(args) {
   console.log("디버깅: args =", JSON.stringify(args, null, 2));
