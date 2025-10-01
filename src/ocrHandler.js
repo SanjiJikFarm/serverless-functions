@@ -41,7 +41,7 @@ function parseReceipt(data) {
     }
     i += lookahead - 1;
 
-    name = name.replace(/\b로컬푸드\b/g, '').trim();
+    name = name.replace(/로\s*컬\s*푸\s*드/g, '').replace(/로컬푸드/g, '').trim();
 
     // 숫자 3개(price, qty, total) 추출 
     let count = 0;
