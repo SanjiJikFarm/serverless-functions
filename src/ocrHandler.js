@@ -12,27 +12,35 @@ function parseReceipt(data) {
   for (let i = 0; i < fields.length; i++) {
     const text = fields[i];
 
-    // 날짜 
+    // 날짜 추출
     if (!date && /^\d{4}[.\-]\d{2}[.\-]\d{2}/.test(text)) {
       date = text.split(" ")[0].replace(/-/g, ".");
     }
 
-    // 점포 이름
+    // 상호명 추출
     if (!storeName && /(로컬푸드|직매장|하나로마트|농협)/.test(text)) {
       storeName = text;
     }
 
-     // 상품명 + 금액
-     if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
-      let name = text.replace(/^P\s*/, ''); 
+    // 상품명 시작
+    if (/^P\s?[가-힣a-zA-Z]/.test(text)) {
+      let name = text.replace(/^P\s*/, '');
       let price = null, qty = null, total = null;
 
-      const maybeNext = fields[i + 1] || "";
-      if (/^[^\d]*$/.test(maybeNext) && !/^(\*|880|2100)/.test(maybeNext)) {
-        name += " " + maybeNext;
-        i++; 
+      // 다음 줄이 이름의 일부인 경우 붙임
+      let lookahead = 1;
+      while (
+        fields[i + lookahead] &&
+        !/^\d/.test(fields[i + lookahead]) &&
+        !/^(\*|880|2100)/.test(fields[i + lookahead]) &&
+        !/^P\s?[가-힣a-zA-Z]/.test(fields[i + lookahead])
+      ) {
+        name += " " + fields[i + lookahead];
+        lookahead++;
       }
+      i += lookahead - 1;
 
+      // 가격/수량/합계 추출
       let count = 0;
       for (let j = i + 1; j < fields.length && count < 3; j++) {
         const val = fields[j].replace(/,/g, '');
@@ -44,13 +52,12 @@ function parseReceipt(data) {
         }
       }
 
-
       if (price && qty && total) {
-        items.push({ name: text, price, qty, total });
+        items.push({ name, price, qty, total });
       }
     }
 
-    // 총구매액
+    // 총 금액
     if (text.includes("총구매액")) {
       const amount = fields[i + 1] || "";
       if (/^\d{1,3}(,\d{3})*$/.test(amount)) {
