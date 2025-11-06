@@ -19,7 +19,7 @@
 
 ## 🏗️  Architecture Diagram
 
-![OCR 구조도](https://private-user-images.githubusercontent.com/192183202/510724942-9fb6a64d-fb68-4f0d-97d4-50ec943388e6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3NjI0MjgwNzcsIm5iZiI6MTc2MjQyNzc3NywicGF0aCI6Ii8xOTIxODMyMDIvNTEwNzI0OTQyLTlmYjZhNjRkLWZiNjgtNGYwZC05N2Q0LTUwZWM5NDMzODhlNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjUxMTA2JTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI1MTEwNlQxMTE2MTdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00MjZhMGQwYjZjY2M5OTIwMmY1MDljNDZmZmZlZmNhODAwNjYxZDkxM2VkOTY2N2NkZTY0YzIxNDExZWZjNmM2JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCJ9.R31H7aDJ8nW9FBYENrDPr_2RvH796g8cn_lb-sNc7X8)
+<img width="582" height="311" alt="Image" src="https://github.com/user-attachments/assets/cf151039-870d-48b4-9acc-cdcec83ba612" />
 
 
 ## ⚙️ 기술 스택 및 선정 이유
