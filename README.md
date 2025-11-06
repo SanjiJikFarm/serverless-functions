@@ -21,6 +21,7 @@
 
 <img width="582" height="311" alt="Image" src="https://github.com/user-attachments/assets/cf151039-870d-48b4-9acc-cdcec83ba612" />
 
+---
 
 ## ⚙️ 기술 스택 및 선정 이유
 
