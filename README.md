@@ -31,4 +31,3 @@
 | 스토리지       | Naver Object Storage | Presigned URL 기반 안전한 접근 제어 |
 | 통신 방식      | Presigned URL + Axios | 서버리스 환경에서 비동기 및 보안 처리 용이 |
 
-> I/O-bound 비동기 작업을 효율적으로 처리하며, 비용 효율성과 트래픽 스파이크 대응력 확보
