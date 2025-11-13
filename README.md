@@ -19,7 +19,7 @@
 
 ## 🏗️  Architecture Diagram
 
-<img width="582" height="311" alt="Image" src="https://github.com/user-attachments/assets/cf151039-870d-48b4-9acc-cdcec83ba612" />
+<img width="770" height="406" alt="Image" src="https://github.com/user-attachments/assets/71e79147-3019-4479-b1eb-541a45318465" />
 
 ---
 
