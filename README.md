@@ -5,7 +5,6 @@
 
 > **주요 목적**: 영수증 자동 인식 + 소비 내역 추출 → 탄소 절감량 계산 및 ESG 소비 리포트 제공
 
----
 
 ## ✨ 주요 기능
 
@@ -15,13 +14,12 @@
 - **Presigned URL**로 클라이언트에게 결과 전달
 - 이후 소비 리포트 및 ESG 탄소 절감 시각화로 연계
 
----
+
 
 ## 🏗️  Architecture Diagram
 
 <img width="770" height="406" alt="Image" src="https://github.com/user-attachments/assets/71e79147-3019-4479-b1eb-541a45318465" />
 
----
 
 ## ⚙️ 기술 스택 
 
