@@ -23,12 +23,12 @@
 
 ---
 
-## ⚙️ 기술 스택 및 선정 이유
+## ⚙️ 기술 스택 
 
-| 컴포넌트        | 기술 스택            | 선정 이유 |
-|----------------|----------------------|-----------|
-| 서버리스 백엔드 | Node.js + NCP Functions | I/O 중심 작업에 적합, 경량 런타임, 빠른 Cold Start |
-| OCR API        | Naver CLOVA OCR      | 한글 기반 영수증 인식 성능 우수 |
-| 스토리지       | Naver Object Storage | Presigned URL 기반 안전한 접근 제어 |
-| 통신 방식      | Presigned URL + Axios | 서버리스 환경에서 비동기 및 보안 처리 용이 |
+| 컴포넌트        | 기술 스택            |
+|----------------|----------------------|
+| 서버리스 백엔드 | Node.js + NCP Functions | 
+| OCR API        | Naver CLOVA OCR      | 
+| 스토리지       | NCP Object Storage | 
+| 통신 방식      | Presigned URL + Axios | 
 
